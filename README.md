@@ -13,6 +13,7 @@ A Flutter plugin for telephony operations based on Android's InCallService and t
 - Real-time call state monitoring
 - Event-driven architecture for call events
 - Support for multiple SIM cards
+- **Dialer replacement functionality** - Set your app as the default dialer
 
 ## Getting Started
 
@@ -22,7 +23,7 @@ Add this to your package's `pubspec.yaml` file:
 
 ```yaml
 dependencies:
-  flutter_tele: ^0.0.1
+  flutter_tele: ^2.0.5+105
 ```
 
 ### Android Permissions
@@ -59,6 +60,28 @@ final result = await endpoint.start({
 });
 
 print('Initial calls: ${result['calls']}');
+```
+
+#### Dialer Replacement
+
+```dart
+// Check if this app is the default dialer
+final isDefault = await TeleDialer.isDefaultDialer();
+print('Is default dialer: $isDefault');
+
+// Check if this app can be set as default dialer
+final canSet = await TeleDialer.canSetDefaultDialer();
+print('Can set as default dialer: $canSet');
+
+// Set this app as the default dialer
+if (canSet && !isDefault) {
+  final success = await TeleDialer.setDefaultDialer();
+  if (success) {
+    print('Successfully set as default dialer');
+  } else {
+    print('Failed to set as default dialer');
+  }
+}
 ```
 
 #### Make a Call
@@ -183,6 +206,17 @@ The main class for telephony operations.
 - `call_terminated` - Fired when a call is terminated
 - `connectivity_changed` - Fired when connectivity changes
 
+### TeleDialer
+
+The dialer replacement functionality class.
+
+#### Methods
+
+- `isDefaultDialer()` - Check if this app is the default dialer
+- `setDefaultDialer()` - Set this app as the default dialer
+- `canSetDefaultDialer()` - Check if this app can be set as default dialer
+- `requestDefaultDialer()` - Request to become the default dialer (opens system dialog)
+
 ### TeleCall
 
 Represents a telephony call.
@@ -208,9 +242,43 @@ Represents a telephony call.
 - `toMap()` - Convert to map for serialization
 - `fromMap(Map<String, dynamic> map)` - Create from map
 
+## Dialer Replacement
+
+The plugin includes dialer replacement functionality that allows your app to become the default dialer on Android. This enables your app to:
+
+- Receive incoming call notifications
+- Handle dialer intents from other apps
+- Provide a custom dialer interface
+- Manage call history and contacts
+
+### Setting as Default Dialer
+
+```dart
+// Check current status
+final isDefault = await TeleDialer.isDefaultDialer();
+final canSet = await TeleDialer.canSetDefaultDialer();
+
+if (canSet && !isDefault) {
+  // This will open the system settings dialog
+  final success = await TeleDialer.setDefaultDialer();
+  if (success) {
+    print('App is now the default dialer');
+  }
+}
+```
+
+### Handling Dialer Intents
+
+When your app is set as the default dialer, it will receive intents for:
+- `ACTION_DIAL` - User wants to dial a number
+- `ACTION_CALL` - User wants to make a call
+- `ACTION_VIEW` - User wants to view call history
+
+Your app should handle these intents appropriately.
+
 ## Example
 
-See the `example` directory for a complete example application demonstrating all features.
+See the `example` directory for a complete example application demonstrating all features including dialer replacement functionality.
 
 ## Requirements
 

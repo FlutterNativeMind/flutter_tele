@@ -21,12 +21,24 @@ class _MyAppState extends State<MyApp> {
   String _phoneNumber = '';
   int _selectedSim = 1;
   bool _hasPermissions = false;
+  bool _isDefaultDialer = false;
+  bool _canSetDefaultDialer = false;
 
   @override
   void initState() {
     super.initState();
     _checkAndRequestPermissions();
     _setupEventListeners();
+    _checkDialerStatus();
+  }
+
+  Future<void> _checkDialerStatus() async {
+    final isDefault = await TeleDialer.isDefaultDialer();
+    final canSet = await TeleDialer.canSetDefaultDialer();
+    setState(() {
+      _isDefaultDialer = isDefault;
+      _canSetDefaultDialer = canSet;
+    });
   }
 
   Future<void> _checkAndRequestPermissions() async {
@@ -61,7 +73,7 @@ class _MyAppState extends State<MyApp> {
       });
 
       final result = await _endpoint.start({
-        'ReplaceDialer': false,
+        'ReplaceDialer': _isDefaultDialer,
         'Permissions': false,
       });
 
@@ -317,6 +329,32 @@ class _MyAppState extends State<MyApp> {
     }
   }
 
+  Future<void> _setDefaultDialer() async {
+    try {
+      setState(() {
+        _status = 'Setting as default dialer...';
+      });
+      
+      final success = await TeleDialer.setDefaultDialer();
+      
+      if (success) {
+        setState(() {
+          _status = 'Successfully set as default dialer';
+          _isDefaultDialer = true;
+        });
+      } else {
+        setState(() {
+          _status = 'Failed to set as default dialer';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _status = 'Error setting default dialer: $e';
+      });
+      print('Error setting default dialer: $e');
+    }
+  }
+
   @override
   void dispose() {
     _endpoint.dispose();
@@ -361,6 +399,50 @@ class _MyAppState extends State<MyApp> {
                             child: const Text('Check/Request Permissions'),
                           ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+                      Card(
+                        child: Padding(
+                          padding: const EdgeInsets.all(12.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Default Dialer Status',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _isDefaultDialer ? 'This app is the default dialer' : 'This app is NOT the default dialer',
+                                style: Theme.of(context).textTheme.bodyLarge,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Can Set as Default',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                _canSetDefaultDialer ? 'This app can be set as default dialer' : 'This app cannot be set as default dialer',
+                                style: Theme.of(context).textTheme.bodyLarge,
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              if (_canSetDefaultDialer && !_isDefaultDialer)
+                                ElevatedButton(
+                                  onPressed: _setDefaultDialer,
+                                  child: const Text('Set as Default Dialer'),
+                                ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Note: Setting as default dialer will open the system settings dialog.',
+                                style: Theme.of(context).textTheme.bodySmall,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 16),
                       TextField(

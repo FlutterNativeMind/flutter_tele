@@ -1,5 +1,18 @@
 # Changelog
 
+## 2.0.5+105
+
+* **NEW:** Added dialer replacement functionality integration with flutter_dialer
+* Added TeleDialer class for dialer replacement operations
+* Integrated flutter_dialer dependency for default dialer management
+* Added isDefaultDialer(), setDefaultDialer(), and canSetDefaultDialer() methods
+* Enhanced example app with dialer status checking and setting functionality
+* Updated README with comprehensive dialer replacement documentation
+* Added support for checking and setting default dialer status
+* Improved telephony service initialization with dialer replacement option
+* Added UI components in example app for dialer functionality demonstration
+* Enhanced configuration options to enable/disable dialer replacement features
+
 ## 0.0.5
 
 * Fixed hangup call functionality for outgoing calls
