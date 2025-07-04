@@ -52,8 +52,7 @@ android {
         implementation("androidx.appcompat:appcompat:1.6.1")
         implementation("com.google.android.material:material:1.11.0")
         
-        // Telephony dependencies
-        implementation("androidx.telecom:telecom:1.0.0-alpha03")
+        // Telephony dependencies - using standard Android SDK APIs
         
         testImplementation("org.jetbrains.kotlin:kotlin-test")
         testImplementation("org.mockito:mockito-core:5.0.0")
