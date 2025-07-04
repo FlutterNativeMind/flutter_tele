@@ -1,0 +1,220 @@
+import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/services.dart';
+import 'call.dart';
+
+class TeleEndpoint {
+  static const MethodChannel _channel = MethodChannel('flutter_tele');
+  static const EventChannel _eventChannel = EventChannel('flutter_tele_events');
+  
+  StreamSubscription? _eventSubscription;
+  final Map<String, StreamController<dynamic>> _eventControllers = {};
+
+  TeleEndpoint() {
+    _setupEventChannel();
+  }
+
+  void _setupEventChannel() {
+    _eventSubscription = _eventChannel.receiveBroadcastStream().listen((event) {
+      _handleEvent(event);
+    });
+  }
+
+  void _handleEvent(dynamic event) {
+    if (event is Map<String, dynamic>) {
+      final eventType = event['type'] as String?;
+      final eventData = event['data'];
+
+      if (eventType != null && _eventControllers.containsKey(eventType)) {
+        _eventControllers[eventType]!.add(eventData);
+      }
+    }
+  }
+
+  /// Returns a Stream for the specified event type
+  Stream<dynamic> on(String eventType) {
+    if (!_eventControllers.containsKey(eventType)) {
+      _eventControllers[eventType] = StreamController<dynamic>.broadcast();
+    }
+    return _eventControllers[eventType]!.stream;
+  }
+
+  /// Start the telephony service with configuration
+  Future<Map<String, dynamic>> start(Map<String, dynamic> configuration) async {
+    try {
+      final result = await _channel.invokeMethod('start', configuration);
+      
+      if (result is Map<String, dynamic>) {
+        final accounts = <Map<String, dynamic>>[];
+        final calls = <TeleCall>[];
+
+        if (result.containsKey('accounts')) {
+          final accountsData = result['accounts'] as List<dynamic>;
+          for (final accountData in accountsData) {
+            if (accountData is Map<String, dynamic>) {
+              accounts.add(accountData);
+            }
+          }
+        }
+
+        if (result.containsKey('calls')) {
+          final callsData = result['calls'] as List<dynamic>;
+          for (final callData in callsData) {
+            if (callData is Map<String, dynamic>) {
+              calls.add(TeleCall.fromMap(callData));
+            }
+          }
+        }
+
+        final extra = <String, dynamic>{};
+        for (final key in result.keys) {
+          if (key != 'accounts' && key != 'calls') {
+            extra[key] = result[key];
+          }
+        }
+
+        return {
+          'accounts': accounts,
+          'calls': calls,
+          ...extra,
+        };
+      }
+      
+      throw Exception('Invalid response from native code');
+    } on PlatformException catch (e) {
+      throw Exception('Failed to start telephony service: ${e.message}');
+    }
+  }
+
+  /// Make an outgoing call
+  Future<TeleCall> makeCall(int sim, String destination, Map<String, dynamic>? callSettings, Map<String, dynamic>? msgData) async {
+    try {
+      final result = await _channel.invokeMethod('makeCall', {
+        'sim': sim,
+        'destination': destination,
+        'callSettings': callSettings,
+        'msgData': msgData,
+      });
+
+      if (result is Map<String, dynamic>) {
+        return TeleCall.fromMap(result);
+      } else if (result == true) {
+        // Handle case where native returns true but we need a call object
+        return TeleCall(id: 1);
+      }
+      
+      throw Exception('Invalid response from native code');
+    } on PlatformException catch (e) {
+      throw Exception('Failed to make call: ${e.message}');
+    }
+  }
+
+  /// Answer an incoming call
+  Future<dynamic> answerCall(TeleCall call) async {
+    try {
+      final result = await _channel.invokeMethod('answerCall', call.getId());
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to answer call: ${e.message}');
+    }
+  }
+
+  /// Hangup a call
+  Future<dynamic> hangupCall(TeleCall call) async {
+    try {
+      final result = await _channel.invokeMethod('hangupCall', call.getId());
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to hangup call: ${e.message}');
+    }
+  }
+
+  /// Decline an incoming call
+  Future<dynamic> declineCall(TeleCall call) async {
+    try {
+      final result = await _channel.invokeMethod('declineCall', call.getId());
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to decline call: ${e.message}');
+    }
+  }
+
+  /// Hold a call
+  Future<dynamic> holdCall(TeleCall call) async {
+    try {
+      final result = await _channel.invokeMethod('holdCall', call.getId());
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to hold call: ${e.message}');
+    }
+  }
+
+  /// Unhold a call
+  Future<dynamic> unholdCall(TeleCall call) async {
+    try {
+      final result = await _channel.invokeMethod('unholdCall', call.getId());
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to unhold call: ${e.message}');
+    }
+  }
+
+  /// Mute a call
+  Future<dynamic> muteCall(TeleCall call) async {
+    try {
+      final result = await _channel.invokeMethod('muteCall', call.getId());
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to mute call: ${e.message}');
+    }
+  }
+
+  /// Unmute a call
+  Future<dynamic> unMuteCall(TeleCall call) async {
+    try {
+      final result = await _channel.invokeMethod('unMuteCall', call.getId());
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to unmute call: ${e.message}');
+    }
+  }
+
+  /// Use speaker for a call
+  Future<dynamic> useSpeaker(TeleCall call) async {
+    try {
+      final result = await _channel.invokeMethod('useSpeaker', call.getId());
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to use speaker: ${e.message}');
+    }
+  }
+
+  /// Use earpiece for a call
+  Future<dynamic> useEarpiece(TeleCall call) async {
+    try {
+      final result = await _channel.invokeMethod('useEarpiece', call.getId());
+      return result;
+    } on PlatformException catch (e) {
+      throw Exception('Failed to use earpiece: ${e.message}');
+    }
+  }
+
+  /// Send envelope command
+  Future<String> sendEnvelope(TeleCall call) async {
+    try {
+      final result = await _channel.invokeMethod('sendEnvelope', call.getId());
+      return result.toString();
+    } on PlatformException catch (e) {
+      throw Exception('Failed to send envelope: ${e.message}');
+    }
+  }
+
+  /// Dispose the endpoint and clean up resources
+  void dispose() {
+    _eventSubscription?.cancel();
+    for (final controller in _eventControllers.values) {
+      controller.close();
+    }
+    _eventControllers.clear();
+  }
+} 

@@ -1,0 +1,44 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+  package="org.telon.tele.flutter_tele">
+
+  <!-- Permissions -->
+  <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+  <uses-permission android:name="android.permission.CALL_PHONE" />
+  <uses-permission android:name="android.permission.READ_CALL_LOG" />
+  <uses-permission android:name="android.permission.MODIFY_PHONE_STATE" />
+  <uses-permission android:name="android.permission.READ_PRECISE_PHONE_STATE" />
+  <uses-permission android:name="android.permission.ANSWER_PHONE_CALLS" />
+  <uses-permission android:name="android.permission.MANAGE_OWN_CALLS" />
+  <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+  <uses-permission android:name="android.permission.WAKE_LOCK" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_PHONE_CALL" />
+
+  <application>
+    <!-- InCallService for handling calls -->
+    <service
+      android:name=".TeleService"
+      android:permission="android.permission.BIND_INCALL_SERVICE"
+      android:exported="true">
+      <meta-data
+        android:name="android.telecom.IN_CALL_SERVICE_UI"
+        android:value="true" />
+      <intent-filter>
+        <action android:name="android.telecom.InCallService" />
+      </intent-filter>
+    </service>
+
+    <!-- Receiver for call events -->
+    <receiver
+      android:name=".TeleBroadcastReceiver"
+      android:exported="false">
+      <intent-filter>
+        <action android:name="org.telon.tele.TELE_CALL_RECEIVED" />
+        <action android:name="org.telon.tele.TELE_CALL_CHANGED" />
+        <action android:name="org.telon.tele.TELE_CALL_TERMINATED" />
+        <action android:name="org.telon.tele.TELE_CONNECTIVITY_CHANGED" />
+      </intent-filter>
+    </receiver>
+  </application>
+
+</manifest>
