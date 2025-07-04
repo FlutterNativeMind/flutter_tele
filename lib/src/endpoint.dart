@@ -14,6 +14,38 @@ class TeleEndpoint {
     _setupEventChannel();
   }
 
+  /// Request phone permissions
+  Future<bool> requestPermissions() async {
+    try {
+      print('FlutterTele: Requesting phone permissions');
+      final result = await _channel.invokeMethod('requestPermissions');
+      print('FlutterTele: Permission request result: $result');
+      return result == true;
+    } on PlatformException catch (e) {
+      print('FlutterTele: PlatformException in requestPermissions: ${e.code} - ${e.message}');
+      return false;
+    } catch (e) {
+      print('FlutterTele: Exception in requestPermissions: $e');
+      return false;
+    }
+  }
+
+  /// Check if phone permissions are granted
+  Future<bool> hasPermissions() async {
+    try {
+      print('FlutterTele: Checking phone permissions');
+      final result = await _channel.invokeMethod('hasPermissions');
+      print('FlutterTele: Has permissions result: $result');
+      return result == true;
+    } on PlatformException catch (e) {
+      print('FlutterTele: PlatformException in hasPermissions: ${e.code} - ${e.message}');
+      return false;
+    } catch (e) {
+      print('FlutterTele: Exception in hasPermissions: $e');
+      return false;
+    }
+  }
+
   void _setupEventChannel() {
     print('FlutterTele: Setting up event channel');
     _eventSubscription = _eventChannel.receiveBroadcastStream().listen((event) {
@@ -55,6 +87,17 @@ class TeleEndpoint {
   Future<Map<String, dynamic>> start(Map<String, dynamic> configuration) async {
     try {
       print('FlutterTele: Starting telephony service with config: $configuration');
+      
+      // Check permissions first
+      final hasPerms = await hasPermissions();
+      if (!hasPerms) {
+        print('FlutterTele: Missing phone permissions, requesting...');
+        final granted = await requestPermissions();
+        if (!granted) {
+          throw Exception('Phone permissions are required but not granted');
+        }
+      }
+      
       final result = await _channel.invokeMethod('start', configuration);
       
       print('FlutterTele: Start method result: $result');

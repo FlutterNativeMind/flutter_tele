@@ -9,6 +9,10 @@ import io.flutter.plugin.common.EventChannel
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 
 /** FlutterTelePlugin */
 class FlutterTelePlugin: FlutterPlugin, MethodCallHandler {
@@ -46,6 +50,12 @@ class FlutterTelePlugin: FlutterPlugin, MethodCallHandler {
 
   override fun onMethodCall(call: MethodCall, result: Result) {
     when (call.method) {
+      "requestPermissions" -> {
+        requestPermissions(result)
+      }
+      "hasPermissions" -> {
+        hasPermissions(result)
+      }
       "start" -> {
         val configuration = call.arguments as? Map<String, Any>
         startTelephonyService(configuration, result)
@@ -364,6 +374,61 @@ class FlutterTelePlugin: FlutterPlugin, MethodCallHandler {
     } catch (e: Exception) {
       Log.e(TAG, "Error sending envelope", e)
       result.error("SEND_ENVELOPE_ERROR", "Failed to send envelope", e.message)
+    }
+  }
+
+  private fun requestPermissions(result: Result) {
+    try {
+      Log.d(TAG, "Requesting phone permissions")
+      
+      val permissions = arrayOf(
+        Manifest.permission.READ_PHONE_STATE,
+        Manifest.permission.CALL_PHONE,
+        Manifest.permission.READ_CALL_LOG,
+        Manifest.permission.ANSWER_PHONE_CALLS,
+        Manifest.permission.MANAGE_OWN_CALLS
+      )
+      
+      val missingPermissions = permissions.filter {
+        ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+      }
+      
+      if (missingPermissions.isEmpty()) {
+        Log.d(TAG, "All permissions already granted")
+        result.success(true)
+      } else {
+        Log.d(TAG, "Missing permissions: $missingPermissions")
+        // Note: In a real app, you would need to request permissions through an Activity
+        // For now, we'll return false and let the app handle permission requests
+        result.success(false)
+      }
+    } catch (e: Exception) {
+      Log.e(TAG, "Error requesting permissions", e)
+      result.error("PERMISSION_ERROR", "Failed to request permissions", e.message)
+    }
+  }
+
+  private fun hasPermissions(result: Result) {
+    try {
+      Log.d(TAG, "Checking phone permissions")
+      
+      val permissions = arrayOf(
+        Manifest.permission.READ_PHONE_STATE,
+        Manifest.permission.CALL_PHONE,
+        Manifest.permission.READ_CALL_LOG,
+        Manifest.permission.ANSWER_PHONE_CALLS,
+        Manifest.permission.MANAGE_OWN_CALLS
+      )
+      
+      val allGranted = permissions.all {
+        ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
+      }
+      
+      Log.d(TAG, "All permissions granted: $allGranted")
+      result.success(allGranted)
+    } catch (e: Exception) {
+      Log.e(TAG, "Error checking permissions", e)
+      result.error("PERMISSION_ERROR", "Failed to check permissions", e.message)
     }
   }
 

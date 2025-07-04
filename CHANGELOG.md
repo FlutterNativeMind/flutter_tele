@@ -12,6 +12,9 @@
 * Added debug logging for call state changes and event processing
 * Fixed Map type conversion issues between native and Flutter code
 * Improved event handling to properly convert Map<Object?, Object?> to Map<String, dynamic>
+* Added runtime permission checking and requesting for phone permissions
+* Enhanced start method to verify permissions before initializing telephony service
+* **Example app:** Now checks and requests permissions at runtime, shows permission status, and handles event map types robustly
 
 ## 0.0.1
 

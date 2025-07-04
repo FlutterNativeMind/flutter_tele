@@ -20,12 +20,38 @@ class _MyAppState extends State<MyApp> {
   TeleCall? _currentCall;
   String _phoneNumber = '';
   int _selectedSim = 1;
+  bool _hasPermissions = false;
 
   @override
   void initState() {
     super.initState();
-    _initializeTelephony();
+    _checkAndRequestPermissions();
     _setupEventListeners();
+  }
+
+  Future<void> _checkAndRequestPermissions() async {
+    setState(() {
+      _status = 'Checking permissions...';
+    });
+    final hasPerms = await _endpoint.hasPermissions();
+    setState(() {
+      _hasPermissions = hasPerms;
+    });
+    if (!hasPerms) {
+      setState(() {
+        _status = 'Requesting permissions...';
+      });
+      final granted = await _endpoint.requestPermissions();
+      setState(() {
+        _hasPermissions = granted;
+        _status = granted ? 'Permissions granted' : 'Permissions denied';
+      });
+      if (granted) {
+        _initializeTelephony();
+      }
+    } else {
+      _initializeTelephony();
+    }
   }
 
   Future<void> _initializeTelephony() async {
@@ -58,8 +84,9 @@ class _MyAppState extends State<MyApp> {
       print('Call received: $event');
       setState(() {
         _status = 'Incoming call received';
-        if (event is Map<String, dynamic>) {
-          _currentCall = TeleCall.fromMap(event);
+        if (event is Map) {
+          final eventMap = event.map((k, v) => MapEntry(k.toString(), v));
+          _currentCall = TeleCall.fromMap(eventMap);
           _calls.add(_currentCall!);
         }
       });
@@ -69,8 +96,9 @@ class _MyAppState extends State<MyApp> {
       print('Call changed: $event');
       setState(() {
         _status = 'Call state changed';
-        if (event is Map<String, dynamic>) {
-          final updatedCall = TeleCall.fromMap(event);
+        if (event is Map) {
+          final eventMap = event.map((k, v) => MapEntry(k.toString(), v));
+          final updatedCall = TeleCall.fromMap(eventMap);
           final index = _calls.indexWhere((call) => call.id == updatedCall.id);
           if (index != -1) {
             _calls[index] = updatedCall;
@@ -86,8 +114,9 @@ class _MyAppState extends State<MyApp> {
       print('Call terminated: $event');
       setState(() {
         _status = 'Call terminated';
-        if (event is Map<String, dynamic>) {
-          final terminatedCall = TeleCall.fromMap(event);
+        if (event is Map) {
+          final eventMap = event.map((k, v) => MapEntry(k.toString(), v));
+          final terminatedCall = TeleCall.fromMap(eventMap);
           _calls.removeWhere((call) => call.id == terminatedCall.id);
           if (_currentCall?.id == terminatedCall.id) {
             _currentCall = null;
@@ -321,6 +350,17 @@ class _MyAppState extends State<MyApp> {
                       Text(
                         'Status: $_status',
                         style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          Text('Permissions: ${_hasPermissions ? 'Granted' : 'Not granted'}'),
+                          const SizedBox(width: 8),
+                          ElevatedButton(
+                            onPressed: _checkAndRequestPermissions,
+                            child: const Text('Check/Request Permissions'),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 16),
                       TextField(
