@@ -432,7 +432,7 @@ class FlutterTelePlugin: FlutterPlugin, MethodCallHandler {
     }
   }
 
-  fun sendEvent(eventType: String, eventData: Map<String, Any>) {
+  fun sendEvent(eventType: String, eventData: Map<String, Any?>) {
     val event = mapOf(
       "type" to eventType,
       "data" to eventData
