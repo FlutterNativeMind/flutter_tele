@@ -10,6 +10,8 @@
 * Added event channel debugging for better troubleshooting
 * Improved TeleCall.fromMap method with better error handling
 * Added debug logging for call state changes and event processing
+* Fixed Map type conversion issues between native and Flutter code
+* Improved event handling to properly convert Map<Object?, Object?> to Map<String, dynamic>
 
 ## 0.0.1
 

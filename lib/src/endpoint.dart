@@ -24,9 +24,10 @@ class TeleEndpoint {
 
   void _handleEvent(dynamic event) {
     print('FlutterTele: Handling event: $event');
-    if (event is Map<String, dynamic>) {
-      final eventType = event['type'] as String?;
-      final eventData = event['data'];
+    if (event is Map) {
+      final eventStringMap = event.map((key, value) => MapEntry(key.toString(), value));
+      final eventType = eventStringMap['type'] as String?;
+      final eventData = eventStringMap['data'];
       print('FlutterTele: Event type: $eventType, data: $eventData');
 
       if (eventType != null && _eventControllers.containsKey(eventType)) {
@@ -59,34 +60,35 @@ class TeleEndpoint {
       print('FlutterTele: Start method result: $result');
       print('FlutterTele: Start result type: ${result.runtimeType}');
       
-      if (result is Map<String, dynamic>) {
+      if (result is Map) {
+        final resultStringMap = result.map((key, value) => MapEntry(key.toString(), value));
         final accounts = <Map<String, dynamic>>[];
         final calls = <TeleCall>[];
 
-        if (result.containsKey('accounts')) {
-          final accountsData = result['accounts'] as List<dynamic>;
+        if (resultStringMap.containsKey('accounts')) {
+          final accountsData = resultStringMap['accounts'] as List<dynamic>;
           print('FlutterTele: Processing ${accountsData.length} accounts');
           for (final accountData in accountsData) {
-            if (accountData is Map<String, dynamic>) {
-              accounts.add(accountData);
+            if (accountData is Map) {
+              accounts.add(accountData.map((k, v) => MapEntry(k.toString(), v)));
             }
           }
         }
 
-        if (result.containsKey('calls')) {
-          final callsData = result['calls'] as List<dynamic>;
+        if (resultStringMap.containsKey('calls')) {
+          final callsData = resultStringMap['calls'] as List<dynamic>;
           print('FlutterTele: Processing ${callsData.length} calls');
           for (final callData in callsData) {
-            if (callData is Map<String, dynamic>) {
-              calls.add(TeleCall.fromMap(callData));
+            if (callData is Map) {
+              calls.add(TeleCall.fromMap(callData.map((k, v) => MapEntry(k.toString(), v))));
             }
           }
         }
 
         final extra = <String, dynamic>{};
-        for (final key in result.keys) {
+        for (final key in resultStringMap.keys) {
           if (key != 'accounts' && key != 'calls') {
-            extra[key] = result[key];
+            extra[key] = resultStringMap[key];
           }
         }
 
@@ -126,9 +128,10 @@ class TeleEndpoint {
       print('FlutterTele: Received result from native: $result');
       print('FlutterTele: Result type: ${result.runtimeType}');
 
-      if (result is Map<String, dynamic>) {
+      if (result is Map) {
         print('FlutterTele: Parsing call data: $result');
-        final call = TeleCall.fromMap(result);
+        final resultStringMap = result.map((key, value) => MapEntry(key.toString(), value));
+        final call = TeleCall.fromMap(resultStringMap);
         print('FlutterTele: Successfully created TeleCall: ${call.toMap()}');
         return call;
       } else if (result == true) {

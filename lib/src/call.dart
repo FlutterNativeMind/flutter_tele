@@ -115,6 +115,14 @@ class TeleCall {
     
     print('FlutterTele: Final remoteNumber: $finalRemoteNumber, remoteName: $finalRemoteName');
 
+    // Helper function to convert Map<Object?, Object?> to Map<String, dynamic>
+    Map<String, dynamic>? convertMap(dynamic value) {
+      if (value is Map) {
+        return value.map((k, v) => MapEntry(k.toString(), v));
+      }
+      return null;
+    }
+
     final call = TeleCall(
       id: map['id'] ?? 0,
       callId: map['callId'],
@@ -137,13 +145,13 @@ class TeleCall {
       videoCount: map['videoCount'],
       lastStatusCode: map['lastStatusCode'],
       lastReason: map['lastReason'],
-      media: map['media'],
-      provisionalMedia: map['provisionalMedia'],
+      media: convertMap(map['media']),
+      provisionalMedia: convertMap(map['provisionalMedia']),
       creationTime: map['creationTime'],
       connectTime: map['connectTime'],
-      details: map['details'],
+      details: convertMap(map['details']),
       callHashCode: map['hashCode'],
-      extras: map['extras'],
+      extras: convertMap(map['extras']),
       connectTimeMillis: map['connectTimeMillis'],
       creationTimeMillis: map['creationTimeMillis'],
       disconnectCause: map['disconnectCause'],
