@@ -42,7 +42,9 @@ class TeleEndpoint {
 
   /// Returns a Stream for the specified event type
   Stream<dynamic> on(String eventType) {
+    print('FlutterTele: Creating event stream for type: $eventType');
     if (!_eventControllers.containsKey(eventType)) {
+      print('FlutterTele: Creating new controller for event type: $eventType');
       _eventControllers[eventType] = StreamController<dynamic>.broadcast();
     }
     return _eventControllers[eventType]!.stream;
@@ -51,7 +53,11 @@ class TeleEndpoint {
   /// Start the telephony service with configuration
   Future<Map<String, dynamic>> start(Map<String, dynamic> configuration) async {
     try {
+      print('FlutterTele: Starting telephony service with config: $configuration');
       final result = await _channel.invokeMethod('start', configuration);
+      
+      print('FlutterTele: Start method result: $result');
+      print('FlutterTele: Start result type: ${result.runtimeType}');
       
       if (result is Map<String, dynamic>) {
         final accounts = <Map<String, dynamic>>[];
@@ -59,6 +65,7 @@ class TeleEndpoint {
 
         if (result.containsKey('accounts')) {
           final accountsData = result['accounts'] as List<dynamic>;
+          print('FlutterTele: Processing ${accountsData.length} accounts');
           for (final accountData in accountsData) {
             if (accountData is Map<String, dynamic>) {
               accounts.add(accountData);
@@ -68,6 +75,7 @@ class TeleEndpoint {
 
         if (result.containsKey('calls')) {
           final callsData = result['calls'] as List<dynamic>;
+          print('FlutterTele: Processing ${callsData.length} calls');
           for (final callData in callsData) {
             if (callData is Map<String, dynamic>) {
               calls.add(TeleCall.fromMap(callData));
@@ -82,16 +90,24 @@ class TeleEndpoint {
           }
         }
 
-        return {
+        final response = {
           'accounts': accounts,
           'calls': calls,
           ...extra,
         };
+        
+        print('FlutterTele: Start method returning: $response');
+        return response;
       }
       
+      print('FlutterTele: Invalid start result type: ${result.runtimeType}');
       throw Exception('Invalid response from native code');
     } on PlatformException catch (e) {
+      print('FlutterTele: PlatformException in start: ${e.code} - ${e.message}');
       throw Exception('Failed to start telephony service: ${e.message}');
+    } catch (e) {
+      print('FlutterTele: Exception in start: $e');
+      throw Exception('Error starting telephony service: $e');
     }
   }
 
