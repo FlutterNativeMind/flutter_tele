@@ -33,11 +33,17 @@ class _MyAppState extends State<MyApp> {
   }
 
   Future<void> _checkDialerStatus() async {
+    setState(() {
+      _status = 'Checking dialer status...';
+    });
+    
     final isDefault = await TeleDialer.isDefaultDialer();
     final canSet = await TeleDialer.canSetDefaultDialer();
+    
     setState(() {
       _isDefaultDialer = isDefault;
       _canSetDefaultDialer = canSet;
+      _status = 'Dialer status updated';
     });
   }
 
@@ -342,6 +348,19 @@ class _MyAppState extends State<MyApp> {
           _status = 'Successfully set as default dialer';
           _isDefaultDialer = true;
         });
+        
+        // Verify that we actually became the default dialer
+        await Future.delayed(const Duration(seconds: 2)); // Give system time to update
+        final isActuallyDefault = await TeleDialer.isDefaultDialer();
+        
+        setState(() {
+          _isDefaultDialer = isActuallyDefault;
+          if (isActuallyDefault) {
+            _status = 'Successfully set as default dialer (verified)';
+          } else {
+            _status = 'Set as default dialer but verification failed - user may have cancelled';
+          }
+        });
       } else {
         setState(() {
           _status = 'Failed to set as default dialer';
@@ -429,11 +448,20 @@ class _MyAppState extends State<MyApp> {
                                 textAlign: TextAlign.center,
                               ),
                               const SizedBox(height: 16),
-                              if (_canSetDefaultDialer && !_isDefaultDialer)
-                                ElevatedButton(
-                                  onPressed: _setDefaultDialer,
-                                  child: const Text('Set as Default Dialer'),
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  if (_canSetDefaultDialer && !_isDefaultDialer)
+                                    ElevatedButton(
+                                      onPressed: _setDefaultDialer,
+                                      child: const Text('Set as Default Dialer'),
+                                    ),
+                                  ElevatedButton(
+                                    onPressed: _checkDialerStatus,
+                                    child: const Text('Refresh Status'),
+                                  ),
+                                ],
+                              ),
                               const SizedBox(height: 8),
                               Text(
                                 'Note: Setting as default dialer will open the system settings dialog.',
