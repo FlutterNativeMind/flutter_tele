@@ -1,6 +1,6 @@
 name: flutter_tele
 description: "Telecommunication module based on InCall and android.telecom for Flutter"
-version: 2.0.4+104
+version: 2.0.5+105
 homepage: https://github.com/telefon-one/flutter_tele
 
 environment:

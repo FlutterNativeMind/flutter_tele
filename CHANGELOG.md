@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.0.5
+
+* Fixed hangup call functionality for outgoing calls
+* Added proper call mapping system between TeleCall and Android Call objects
+* Enhanced call management to handle both incoming and outgoing calls correctly
+* Fixed call state synchronization between Flutter and native Android calls
+* Improved call lifecycle management with proper cleanup
+* Added better error handling and logging for call operations
+* Fixed call ID management to prevent conflicts between multiple calls
+* Enhanced call control methods (answer, decline, hold, unhold) to work with call mapping
+* Added support for proper call termination handling
+
 ## 0.0.4
 
 * Fixed Kotlin type casting issue in TeleService.kt
