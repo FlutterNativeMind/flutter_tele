@@ -117,6 +117,7 @@ class TeleService : InCallService() {
     private fun makeCall(sim: Int, destination: String, callSettings: String?, msgData: String?) {
         try {
             Log.d(TAG, "Making call to $destination on SIM $sim")
+            Log.d(TAG, "Call settings: $callSettings, msgData: $msgData")
             
             // Create a call object for tracking
             teleCallIds++
@@ -128,12 +129,22 @@ class TeleService : InCallService() {
             )
             mCalls.add(teleCall)
             
+            Log.d(TAG, "Created TeleCall with ID: ${teleCall.id}")
+            
             // Send call initiated event
             FlutterTelePlugin.getInstance()?.sendEvent("call_received", teleCall.toMap())
+            Log.d(TAG, "Sent call_received event to Flutter")
             
             // In a real implementation, you would use TelecomManager to make the call
             // For now, we'll just simulate the call creation
             Log.d(TAG, "Call initiated: ${teleCall.id}")
+            
+            // Simulate call state change after a short delay
+            mHandler?.postDelayed({
+                teleCall.state = "CONNECTING"
+                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap())
+                Log.d(TAG, "Call state changed to CONNECTING: ${teleCall.id}")
+            }, 1000)
             
         } catch (e: Exception) {
             Log.e(TAG, "Error making call", e)

@@ -79,31 +79,43 @@ class TeleCall {
   });
 
   factory TeleCall.fromMap(Map<String, dynamic> map) {
+    print('FlutterTele: TeleCall.fromMap called with: $map');
+    
     String? remoteNumber;
     String? remoteName;
 
     if (map['remoteUri'] != null) {
       final remoteUri = map['remoteUri'] as String;
+      print('FlutterTele: Parsing remoteUri: $remoteUri');
       
       // Parse remote URI to extract name and number
       final nameMatch = RegExp(r'"([^"]+)" <sip:([^@]+)@').firstMatch(remoteUri);
       if (nameMatch != null) {
         remoteName = nameMatch.group(1);
         remoteNumber = nameMatch.group(2);
+        print('FlutterTele: Found name and number from SIP URI: $remoteName, $remoteNumber');
       } else {
         final numberMatch = RegExp(r'sip:([^@]+)@').firstMatch(remoteUri);
         if (numberMatch != null) {
           remoteNumber = numberMatch.group(1);
+          print('FlutterTele: Found number from SIP URI: $remoteNumber');
         }
       }
 
       final telMatch = RegExp(r'tel:([^@]+)').firstMatch(remoteUri);
       if (telMatch != null) {
         remoteNumber = Uri.decodeComponent(telMatch.group(1)!);
+        print('FlutterTele: Found number from tel URI: $remoteNumber');
       }
     }
 
-    return TeleCall(
+    // Use remoteNumber and remoteName from map if available, otherwise use parsed values
+    final finalRemoteNumber = map['remoteNumber'] ?? remoteNumber;
+    final finalRemoteName = map['remoteName'] ?? remoteName;
+    
+    print('FlutterTele: Final remoteNumber: $finalRemoteNumber, remoteName: $finalRemoteName');
+
+    final call = TeleCall(
       id: map['id'] ?? 0,
       callId: map['callId'],
       accountId: map['accountId'],
@@ -139,9 +151,12 @@ class TeleCall {
       simSlot: map['simSlot'],
       simSlot1: map['simSlot1'],
       simSlot2: map['simSlot2'],
-      remoteNumber: remoteNumber,
-      remoteName: remoteName,
+      remoteNumber: finalRemoteNumber,
+      remoteName: finalRemoteName,
     );
+    
+    print('FlutterTele: Created TeleCall with id: ${call.id}, state: ${call.state}, remoteNumber: ${call.remoteNumber}');
+    return call;
   }
 
   Map<String, dynamic> toMap() {

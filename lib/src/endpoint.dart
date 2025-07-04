@@ -15,19 +15,28 @@ class TeleEndpoint {
   }
 
   void _setupEventChannel() {
+    print('FlutterTele: Setting up event channel');
     _eventSubscription = _eventChannel.receiveBroadcastStream().listen((event) {
+      print('FlutterTele: Received event from native: $event');
       _handleEvent(event);
     });
   }
 
   void _handleEvent(dynamic event) {
+    print('FlutterTele: Handling event: $event');
     if (event is Map<String, dynamic>) {
       final eventType = event['type'] as String?;
       final eventData = event['data'];
+      print('FlutterTele: Event type: $eventType, data: $eventData');
 
       if (eventType != null && _eventControllers.containsKey(eventType)) {
+        print('FlutterTele: Sending event to controller: $eventType');
         _eventControllers[eventType]!.add(eventData);
+      } else {
+        print('FlutterTele: No controller found for event type: $eventType');
       }
+    } else {
+      print('FlutterTele: Event is not a Map: ${event.runtimeType}');
     }
   }
 
@@ -89,6 +98,8 @@ class TeleEndpoint {
   /// Make an outgoing call
   Future<TeleCall> makeCall(int sim, String destination, Map<String, dynamic>? callSettings, Map<String, dynamic>? msgData) async {
     try {
+      print('FlutterTele: Making call to $destination on SIM $sim');
+      
       final result = await _channel.invokeMethod('makeCall', {
         'sim': sim,
         'destination': destination,
@@ -96,16 +107,28 @@ class TeleEndpoint {
         'msgData': msgData,
       });
 
+      print('FlutterTele: Received result from native: $result');
+      print('FlutterTele: Result type: ${result.runtimeType}');
+
       if (result is Map<String, dynamic>) {
-        return TeleCall.fromMap(result);
+        print('FlutterTele: Parsing call data: $result');
+        final call = TeleCall.fromMap(result);
+        print('FlutterTele: Successfully created TeleCall: ${call.toMap()}');
+        return call;
       } else if (result == true) {
         // Handle case where native returns true but we need a call object
+        print('FlutterTele: Native returned true, creating default call object');
         return TeleCall(id: 1);
       }
       
-      throw Exception('Invalid response from native code');
+      print('FlutterTele: Invalid result type: ${result.runtimeType}, value: $result');
+      throw Exception('Invalid response from native code: expected Map or bool, got ${result.runtimeType}');
     } on PlatformException catch (e) {
+      print('FlutterTele: PlatformException in makeCall: ${e.code} - ${e.message}');
       throw Exception('Failed to make call: ${e.message}');
+    } catch (e) {
+      print('FlutterTele: Exception in makeCall: $e');
+      throw Exception('Error making call: $e');
     }
   }
 

@@ -171,6 +171,8 @@ class FlutterTelePlugin: FlutterPlugin, MethodCallHandler {
 
   private fun makeCall(sim: Int, destination: String, callSettings: Map<String, Any>?, msgData: Map<String, Any>?, result: Result) {
     try {
+      Log.d(TAG, "makeCall called with sim=$sim, destination=$destination")
+      
       val intent = Intent(context, TeleService::class.java).apply {
         action = "MAKE_CALL"
         putExtra("sim", sim)
@@ -180,13 +182,48 @@ class FlutterTelePlugin: FlutterPlugin, MethodCallHandler {
       }
       context.startService(intent)
       
-      // For now, return a simple call object
+      // Return a more complete call object that matches Flutter expectations
       val callData = mapOf(
         "id" to 1,
-        "destination" to destination,
-        "sim" to sim,
-        "state" to "INITIATING"
+        "callId" to "call_1",
+        "accountId" to 1,
+        "localContact" to "",
+        "localUri" to "",
+        "remoteContact" to destination,
+        "remoteUri" to "tel:$destination",
+        "state" to "INITIATING",
+        "stateText" to "Initiating call",
+        "held" to false,
+        "muted" to false,
+        "speaker" to false,
+        "connectDuration" to 0,
+        "totalDuration" to 0,
+        "remoteOfferer" to false,
+        "remoteAudioCount" to 0,
+        "remoteVideoCount" to 0,
+        "audioCount" to 0,
+        "videoCount" to 0,
+        "lastStatusCode" to 0,
+        "lastReason" to "",
+        "media" to emptyMap<String, Any>(),
+        "provisionalMedia" to emptyMap<String, Any>(),
+        "creationTime" to "",
+        "connectTime" to "",
+        "details" to emptyMap<String, Any>(),
+        "hashCode" to "call_1_hash",
+        "extras" to emptyMap<String, Any>(),
+        "connectTimeMillis" to 0,
+        "creationTimeMillis" to 0,
+        "disconnectCause" to "",
+        "direction" to "DIRECTION_OUTGOING",
+        "simSlot" to sim,
+        "simSlot1" to sim,
+        "simSlot2" to sim,
+        "remoteNumber" to destination,
+        "remoteName" to destination
       )
+      
+      Log.d(TAG, "makeCall returning call data: $callData")
       result.success(callData)
     } catch (e: Exception) {
       Log.e(TAG, "Error making call", e)
@@ -335,6 +372,7 @@ class FlutterTelePlugin: FlutterPlugin, MethodCallHandler {
       "type" to eventType,
       "data" to eventData
     )
+    Log.d(TAG, "Sending event to Flutter: $event")
     eventSink?.success(event)
   }
 
