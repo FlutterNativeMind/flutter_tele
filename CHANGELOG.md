@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.0.4
+
+* Fixed Kotlin type casting issue in TeleService.kt
+* Added explicit type casting for Map<String, Any> in sendEvent calls
+* Fixed compilation error on line 187 of TeleService.kt
+* Ensured proper type compatibility between TeleCall.toMap() and sendEvent method
+
+## 0.0.3
+
+* **BREAKING:** Fixed makeCall to actually make real phone calls instead of just simulating
+* Added real Intent.ACTION_CALL implementation for outgoing calls
+* Added proper SIM slot selection for dual-SIM devices
+* Added phone account handle selection for specific SIM cards
+* Enhanced call state management with real Android Call objects
+* Added proper incoming call handling with call details extraction
+* Added call error event handling for failed call attempts
+* Improved call state mapping to match Android Call states
+* Added support for call direction detection (incoming/outgoing)
+* Enhanced call termination handling with proper cleanup
+* Added better error handling and logging for call operations
+* Fixed call ID management to prevent conflicts
+* Added proper call lifecycle management (added, changed, removed)
+
 ## 0.0.2
 
 * Fixed "Invalid response from native code" error in makeCall method

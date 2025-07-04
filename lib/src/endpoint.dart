@@ -65,6 +65,12 @@ class TeleEndpoint {
       if (eventType != null && _eventControllers.containsKey(eventType)) {
         print('FlutterTele: Sending event to controller: $eventType');
         _eventControllers[eventType]!.add(eventData);
+      } else if (eventType == 'call_error') {
+        // Handle call error events
+        print('FlutterTele: Call error: $eventData');
+        if (_eventControllers.containsKey('call_error')) {
+          _eventControllers['call_error']!.add(eventData);
+        }
       } else {
         print('FlutterTele: No controller found for event type: $eventType');
       }

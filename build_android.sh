@@ -1,2 +1,2 @@
 #flutter build appbundle
-flutter build apk
+cd example && flutter build apk

@@ -7,6 +7,7 @@ import android.telecom.Call
 import android.telecom.InCallService
 import android.telecom.TelecomManager
 import android.telephony.TelephonyManager
+import android.telephony.SubscriptionManager
 import android.util.Log
 import android.content.Context
 import android.media.AudioManager
@@ -15,6 +16,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.Bundle
 import java.util.*
+import android.net.Uri
 
 class TeleService : InCallService() {
     companion object {
@@ -132,22 +134,61 @@ class TeleService : InCallService() {
             Log.d(TAG, "Created TeleCall with ID: ${teleCall.id}")
             
             // Send call initiated event
-            FlutterTelePlugin.getInstance()?.sendEvent("call_received", teleCall.toMap())
+            FlutterTelePlugin.getInstance()?.sendEvent("call_received", teleCall.toMap() as Map<String, Any>)
             Log.d(TAG, "Sent call_received event to Flutter")
             
-            // In a real implementation, you would use TelecomManager to make the call
-            // For now, we'll just simulate the call creation
+            // Actually make the phone call using Intent.ACTION_CALL
+            val url = "tel:$destination"
+            val callIntent = Intent(Intent.ACTION_CALL, Uri.parse(url))
+            callIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            
+            // Add SIM slot information
+            val simSlotNames = arrayOf(
+                "android.intent.extra.SLOT_ID",
+                "android.intent.extra.SIM_SLOT_INDEX",
+                "android.intent.extra.SUB_ID"
+            )
+            
+            for (slotName in simSlotNames) {
+                callIntent.putExtra(slotName, sim - 1) // SIM slots are 0-based
+            }
+            
+            // Try to set phone account handle for specific SIM
+            try {
+                val subscriptionManager = getSystemService(Context.TELEPHONY_SUBSCRIPTION_SERVICE) as SubscriptionManager
+                val telecomManager = getSystemService(Context.TELECOM_SERVICE) as TelecomManager
+                
+                // Get phone accounts
+                val phoneAccounts = telecomManager.callCapablePhoneAccounts
+                if (phoneAccounts.isNotEmpty()) {
+                    // Use the appropriate phone account based on SIM slot
+                    val phoneAccount = phoneAccounts.getOrNull(sim - 1) ?: phoneAccounts.first()
+                    callIntent.putExtra("android.telecom.extra.PHONE_ACCOUNT_HANDLE", phoneAccount)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not set phone account handle: ${e.message}")
+            }
+            
+            // Start the call activity
+            startActivity(callIntent)
+            
             Log.d(TAG, "Call initiated: ${teleCall.id}")
             
             // Simulate call state change after a short delay
             mHandler?.postDelayed({
                 teleCall.state = "CONNECTING"
-                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap())
+                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap() as Map<String, Any>)
                 Log.d(TAG, "Call state changed to CONNECTING: ${teleCall.id}")
             }, 1000)
             
         } catch (e: Exception) {
             Log.e(TAG, "Error making call", e)
+            // Send error event to Flutter
+            FlutterTelePlugin.getInstance()?.sendEvent("call_error", mapOf(
+                "error" to e.message,
+                "destination" to destination,
+                "sim" to sim
+            ))
         }
     }
 
@@ -157,8 +198,10 @@ class TeleService : InCallService() {
             if (teleCall != null && currentCall != null) {
                 currentCall?.answer(0)
                 teleCall.state = "CONNECTED"
-                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap())
+                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap() as Map<String, Any>)
                 Log.d(TAG, "Call answered: $callId")
+            } else {
+                Log.w(TAG, "Cannot answer call: teleCall=$teleCall, currentCall=$currentCall")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error answering call", e)
@@ -171,9 +214,11 @@ class TeleService : InCallService() {
             if (teleCall != null && currentCall != null) {
                 currentCall?.disconnect()
                 teleCall.state = "DISCONNECTED"
-                FlutterTelePlugin.getInstance()?.sendEvent("call_terminated", teleCall.toMap())
+                FlutterTelePlugin.getInstance()?.sendEvent("call_terminated", teleCall.toMap() as Map<String, Any>)
                 mCalls.remove(teleCall)
                 Log.d(TAG, "Call hung up: $callId")
+            } else {
+                Log.w(TAG, "Cannot hangup call: teleCall=$teleCall, currentCall=$currentCall")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error hanging up call", e)
@@ -186,9 +231,11 @@ class TeleService : InCallService() {
             if (teleCall != null && currentCall != null) {
                 currentCall?.reject(false, null)
                 teleCall.state = "DECLINED"
-                FlutterTelePlugin.getInstance()?.sendEvent("call_terminated", teleCall.toMap())
+                FlutterTelePlugin.getInstance()?.sendEvent("call_terminated", teleCall.toMap() as Map<String, Any>)
                 mCalls.remove(teleCall)
                 Log.d(TAG, "Call declined: $callId")
+            } else {
+                Log.w(TAG, "Cannot decline call: teleCall=$teleCall, currentCall=$currentCall")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error declining call", e)
@@ -201,7 +248,7 @@ class TeleService : InCallService() {
             if (teleCall != null && currentCall != null) {
                 currentCall?.hold()
                 teleCall.held = true
-                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap())
+                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap() as Map<String, Any>)
                 Log.d(TAG, "Call held: $callId")
             }
         } catch (e: Exception) {
@@ -215,7 +262,7 @@ class TeleService : InCallService() {
             if (teleCall != null && currentCall != null) {
                 currentCall?.unhold()
                 teleCall.held = false
-                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap())
+                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap() as Map<String, Any>)
                 Log.d(TAG, "Call unheld: $callId")
             }
         } catch (e: Exception) {
@@ -229,7 +276,7 @@ class TeleService : InCallService() {
             if (teleCall != null) {
                 mAudioManager?.isMicrophoneMute = true
                 teleCall.muted = true
-                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap())
+                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap() as Map<String, Any>)
                 Log.d(TAG, "Call muted: $callId")
             }
         } catch (e: Exception) {
@@ -243,7 +290,7 @@ class TeleService : InCallService() {
             if (teleCall != null) {
                 mAudioManager?.isMicrophoneMute = false
                 teleCall.muted = false
-                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap())
+                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap() as Map<String, Any>)
                 Log.d(TAG, "Call unmuted: $callId")
             }
         } catch (e: Exception) {
@@ -258,7 +305,7 @@ class TeleService : InCallService() {
                 mAudioManager?.mode = AudioManager.MODE_NORMAL
                 mAudioManager?.isSpeakerphoneOn = true
                 teleCall.speaker = true
-                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap())
+                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap() as Map<String, Any>)
                 Log.d(TAG, "Speaker enabled: $callId")
             }
         } catch (e: Exception) {
@@ -273,7 +320,7 @@ class TeleService : InCallService() {
                 mAudioManager?.mode = AudioManager.MODE_IN_COMMUNICATION
                 mAudioManager?.isSpeakerphoneOn = false
                 teleCall.speaker = false
-                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap())
+                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap() as Map<String, Any>)
                 Log.d(TAG, "Earpiece enabled: $callId")
             }
         } catch (e: Exception) {
@@ -285,6 +332,12 @@ class TeleService : InCallService() {
         return mCalls.find { it.id == callId }
     }
 
+    private fun findCallByCall(call: Call): TeleCall? {
+        // This is a simplified implementation
+        // In a real app, you'd maintain a mapping between Call objects and TeleCall objects
+        return mCalls.lastOrNull()
+    }
+
     // InCallService callbacks
     override fun onCallAdded(call: Call) {
         super.onCallAdded(call)
@@ -293,15 +346,25 @@ class TeleService : InCallService() {
         currentCall = call
         teleCallIds++
         
+        // Extract call details
+        val callDetails = call.details
+        val handle = callDetails.handle
+        val remoteNumber = handle?.schemeSpecificPart ?: ""
+        val remoteName = callDetails.callerDisplayName ?: remoteNumber
+        
         val teleCall = TeleCall(
             id = teleCallIds,
+            destination = remoteNumber,
+            sim = 1, // Default to SIM 1, could be determined from phone account
             state = "INCOMING",
-            direction = "DIRECTION_INCOMING"
+            direction = "DIRECTION_INCOMING",
+            remoteNumber = remoteNumber,
+            remoteName = remoteName
         )
         mCalls.add(teleCall)
         
         // Send call received event
-        FlutterTelePlugin.getInstance()?.sendEvent("call_received", teleCall.toMap())
+        FlutterTelePlugin.getInstance()?.sendEvent("call_received", teleCall.toMap() as Map<String, Any>)
         
         // Register call callbacks
         call.registerCallback(object : Call.Callback() {
@@ -314,10 +377,12 @@ class TeleService : InCallService() {
                     Call.STATE_DISCONNECTED -> "DISCONNECTED"
                     Call.STATE_ACTIVE -> "ACTIVE"
                     Call.STATE_HOLDING -> "HOLDING"
+                    Call.STATE_DIALING -> "DIALING"
+                    Call.STATE_CONNECTING -> "CONNECTING"
                     else -> "UNKNOWN"
                 }
                 
-                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap())
+                FlutterTelePlugin.getInstance()?.sendEvent("call_changed", teleCall.toMap() as Map<String, Any>)
             }
 
             override fun onCallDestroyed(call: Call) {
@@ -325,7 +390,7 @@ class TeleService : InCallService() {
                 Log.d(TAG, "Call destroyed")
                 
                 teleCall.state = "DISCONNECTED"
-                FlutterTelePlugin.getInstance()?.sendEvent("call_terminated", teleCall.toMap())
+                FlutterTelePlugin.getInstance()?.sendEvent("call_terminated", teleCall.toMap() as Map<String, Any>)
                 mCalls.remove(teleCall)
             }
         })
@@ -337,18 +402,14 @@ class TeleService : InCallService() {
         
         val teleCall = findCallByCall(call)
         if (teleCall != null) {
+            teleCall.state = "DISCONNECTED"
+            FlutterTelePlugin.getInstance()?.sendEvent("call_terminated", teleCall.toMap() as Map<String, Any>)
             mCalls.remove(teleCall)
         }
         
         if (currentCall == call) {
             currentCall = null
         }
-    }
-
-    private fun findCallByCall(call: Call): TeleCall? {
-        // This is a simplified implementation
-        // In a real app, you'd maintain a mapping between Call objects and TeleCall objects
-        return mCalls.lastOrNull()
     }
 
     override fun onBind(intent: Intent): IBinder? {
